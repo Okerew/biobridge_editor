@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Biobridge Editor</title>
+    <script src="libs/ace/src/ace.js"></script>
+    <script src="libs/ace/src/ext-language_tools.js"></script>
+    <script src="libs/socket.io.js"></script>
+    <script src="libs/purify.js"></script>
+    <script src="web_sources/parsers.js"></script>
+    <script src="web_sources/file_ops.js"></script>
+    <script src="web_sources/run_code.js"></script>
+    <script src="libs/tesseract.min.js"></script>
+    <script src="web_sources/script.js" defer></script>
+    <link rel="stylesheet" href="web_sources/style.css" />
+    <link
+            rel="icon"
+            href="icons/icon.png"
+    />
+</head>
+<body>
+<div class="navbar">
+    <select id="language-select">
+        <option value="text">Select a language</option>
+        <option value="biobridge">Biobridge</option>
+        <option value="markdown">Markdown</option>
+        <option value="dockerfile">Docker File</option>
+        <option value="json">JSON</option>
+        <option value="mysql">MySql</option>
+        <option value="graphqlschema">GraphQL</option>
+        <option value="python">Python</option>
+        <option value="c_cpp">C/C++</option>
+        <option value="yaml">Yaml</option>
+    </select>
+    <button onclick="runCode()"><img src="icons/run.png" class="n_icon" alt = "run">Run</button>
+    <button onclick="fileOps()"><img src="icons/files.svg" class="n_icon" alt = "files">Files</button>
+    <button onclick="openSettings()"><img src="icons/settings.png" class="n_icon" alt = "settings">Settings</button>
+    <button onclick="gitOps()"><img src="icons/git.png" class="n_icon" alt = "git">Git</button>
+    <button onclick="connectToCollaborativeServer()"><img src="icons/live-share.svg" class="n_icon" alt = "live-share">Collab</button>
+    <button onclick="loadCodeSnippet()"><img class="n_icon" src="icons/snippets.svg" alt="snippets">Snippets</button>
+    <button onclick="snapOps()"><img src="icons/snapshot.svg" class="n_icon" alt = "snapshot">Snapshot</button>
+    <button onclick="loadServerFiles()">
+        <img
+                src="icons/remote.svg"
+                class="n_icon"
+                alt = "remote"
+        />
+        Remote
+    </button>
+        <button onclick="createDatabaseForm()">
+            <img
+                    src="icons/database.svg"
+                    class="n_icon"
+            >
+            Databases
+        </button>
+    <button onclick="kubernetesOps()"><img src="icons/kubernetes.svg" class="n_icon" alt="kubernetes"> Kubernetes</button>
+    <button onclick="terminal()"><img src="icons/terminal.svg" class="n_icon" alt="terminal">Terminal</button>
+    <button onclick="executeDockerOperation()"><img src="icons/docker.svg" class="n_icon" alt="docker"> Docker</button>
+    <label id="imageInputLabel" for="imageInput"><img src="icons/handwriting.svg" class="n_icon" alt="handwriting">Upload Handwriting</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <p id="fileName"></p>
+</div>
+<div id="terminal"></div>
+<br>
+<div class="tabBar" id="tabBar">
+    <button id="closeActiveTab">Close Active Tab</button>
+    <button onclick="addTab()">Add Tab</button>
+</div>
+<div id="editor"></div>
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeSettings()">&times;</span>
+        <h2>Settings</h2>
+        <label>Darkmode/Lightmode</label>
+        <button onclick="toggleTheme()">Toggle</button>
+        <br><br>
+        <label>Zen</label>
+        <button onclick="toggleZenMode()">Mode</button>
+        <br><br>
+        <label>Split</label>
+        <button onclick="toggleSplitView()">Toggle</button>
+    </div>
+</div>
+<div id="fileModal" class="modal">
+    <div class="modal-content">
+        <label>Open</label>
+        <span class="close" onclick="closefileOps()">&times;</span>
+        <button onclick="openFileDialog()">File</button>
+        <br>
+        <label>Save As</label>
+        <button onclick="saveFile()">File</button>
+        <br>
+        <label>Save</label>
+        <button onclick="saveToFile()">File</button>
+        <br>
+        <label>Folder</label>
+        <button onclick="openFolderDialog()">Open</button>
+        <br>
+        <label>File Tree</label>
+        <button onclick="fileTreeShow()">Show/Hide</button>
+        <br>
+        <label>File Structure</label>
+        <button onclick="removeStructure()">Remove</button>
+        <br>
+        <label>Remote File</label>
+        <button onclick="saveRemoteActiveFile()">
+            Save
+        </button>
+        <br>
+        <label>Remote File Tree</label>
+        <button onclick="remoteFileTree()">
+            Show/Hide
+        </button>
+    </div>
+</div>
+<div id="runModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeRunCode()">&times;</span>
+        <label>Active File</label>
+        <button onclick="executeActiveFile()">Run</button>
+        <br />
+        <label>Remote File</label>
+        <button onclick="executeRemoteActiveFile()">Run</button>
+        <br>
+        <label>Show/Hide</label>
+        <button onclick="htmlOutput()">Output</button>
+        <br>
+        <label>Markdown</label>
+        <button onclick="runMarkdown()">Run</button>
+        <hr>
+        <label>Temps:</label>
+        <br><br>
+        <label>Python</label>
+        <button onclick="executePythonCode()">Run</button>
+        <br>
+        <label>C++</label>
+        <button onclick="executeCppCode()">Run</button>
+        <br>
+        <label>C</label>
+        <button onclick="executeCCode()">Run</button>
+        <br>
+        <label>HTTP request</label>
+        <button onclick="executeHttpRequests()">Run</button>
+        <br>
+        <label>Sql Output</label>
+        <button onclick="sqlOutput()">
+            Show/Hide
+        </button>
+        <br>
+        <hr>
+        <label>Python Notebook</label>
+        <br><br>
+        <button onclick="runMarkdownPythonNotebook()">
+            Run Whole
+        </button>
+        <br>
+        <button onclick="parseMarkdownForPythonWithButtons();">
+            Load codeblocks
+        </button>
+        <br>
+        <button onclick="notebookOutput()">
+            Show/Hide
+        </button>
+    </div>
+</div>
+<div id="gitModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeGitOps()">&times;</span>
+        <label>Git</label>
+        <button onclick="pushToGithub()">Push</button>
+        <br><br>
+        <label>Git</label>
+        <button onclick="loadRepoFiles()">Clone</button>
+        <br><br>
+        <label>Git</label>
+        <button onclick="mergeBranches()">
+            Merge
+        </button>
+        <br><br>
+        <label>Git File Tree</label>
+        <button onclick="hideFileTree()">Show/Hide</button>
+        <br><br>
+        <label>Git</label>
+        <button onclick="pushAllToGithub()">Push All</button>
+    </div>
+</div>
+<div id="snippetModal" class="modal">
+    <div class="modal-content">
+        <span onclick="closeSnipetOps()" class="close">&times;</span>
+        <button onclick="saveCodeSnippet()">Save Snippet</button>
+        <h2>Saved Snippets</h2>
+        <ul id="snippetList"></ul>
+    </div>
+</div>
+<div id="snapshotModal" class="modal">
+    <div class="modal-content">
+        <span onclick="hideSnapOps()" class="close">&times;</span>
+        <h2>Editor Snapshots</h2>
+        <ul id="snapshotList"></ul>
+    </div>
+</div>
+
+<div id="output-container"></div>
+<div id="file-explorer"></div>
+<div id="kubernetesResultContainer"></div>
+<div id="formContainer"></div>
+<div id="notebook-block"></div>
+<script src="web_sources/terminal.js"></script>
+<script src="libs/ace/src/mode-javascript.js"></script>
+<script src="libs/ace/src/mode-python.js"></script>
+<script src="web_sources/load_extensions.js"></script>
+<div class="biobridge_bottom_display">
+    <div class="navbar">
+        <button onclick="insertValueIntoEditor('Cell()')">Cell</button>
+        <button onclick="insertValueIntoEditor('DNA()')">Dna</button>
+        <button onclick="insertValueIntoEditor('RNA()')">Rna</button>
+        <button onclick="insertValueIntoEditor('Protein()')">Protein</button>
+        <button onclick="insertValueIntoEditor('Chromosome()')">Chromosome</button>
+        <button onclick="insertValueIntoEditor('Environment()')">Environment</button>
+        <button onclick="insertValueIntoEditor('Tissue()')">Tissue</button>
+        <button onclick="insertValueIntoEditor('System()')">System</button>
+        <button onclick="insertValueIntoEditor('ImageAnalyzer()')">ImageAnalyzer</button>
+        <button onclick="insertValueIntoEditor('Orchestrator()')">Orchestrator</button>
+        <button onclick="insertValueIntoEditor('Virus()')">Virus</button>
+        <button onclick="insertValueIntoEditor('Infection()')">Infection</button>
+        <button onclick="insertValueIntoEditor('SQLDNAEncoder()')">SQLDNAEncoder</button>
+        <button onclick="insertValueIntoEditor('SurgicalSimulator()')">SurgicalSimulator</button>
+    </div>
+</div>
+</body>
+</html>

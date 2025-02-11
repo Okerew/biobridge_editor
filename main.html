@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Biobridge Editor Projects</title>
+    <link rel="stylesheet" href="web_sources/style.css" />
+</head>
+<body>
+  <div align="center">
+      <h1>Biobridge Editor Projects</h1>
+      <hr>
+      <h2>Create new project</h2>
+      <div id="selected-folder"></div>
+      <input type="hidden" id="folder-path" />
+      <button id="select-location-btn">Select Location for project</button>
+      <input type="text" id="folder-name" placeholder="Enter new project name" />
+      <button id="create-folder-btn">Create New Project</button>
+  </div>
+ <hr>
+  <div align="center">
+      <h2>Your Projects</h2>
+      <ul id="project-list"></ul> <!-- List for displaying projects -->
+  </div>
+  <hr>
+  <style>
+      .bottom_display {
+          position: fixed;
+          bottom: 0;
+          width: 100%;
+      }
+  </style>
+  <div class="bottom_display">
+ <a href="index.html">Create new blank project/Open existing project</a>
+  </div>
+</body>
+<script>
+    /*
+     * Biobridge project creation
+     */
+    const { ipcRenderer } = require('electron');
+    document.getElementById('select-location-btn').addEventListener('click', async () => {
+        const result = await ipcRenderer.invoke('select-folder-location');
+
+        if (result.success) {
+            document.getElementById('selected-folder').innerText = `Selected Location: ${result.folderPath}`;
+            document.getElementById('folder-path').value = result.folderPath;
+        } else {
+            alert(result.message);
+        }
+    });
+
+    // Load projects from localStorage when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProjects();
+    });
+
+    // Handle folder creation
+    document.getElementById('create-folder-btn').addEventListener('click', async () => {
+        const folderPath = document.getElementById('folder-path').value;
+        const folderName = document.getElementById('folder-name').value;
+
+        if (!folderPath) {
+            alert("Please select a location first.");
+            return;
+        }
+
+        if (!folderName) {
+            alert("Please enter a folder name.");
+            return;
+        }
+
+        const result = await ipcRenderer.invoke('create-new-folder', folderPath, folderName);
+
+        if (result.success) {
+            alert(`Folder created at: ${result.folderPath}`);
+
+            // Add the new project to the localStorage and update the display
+            addProject(folderPath, folderName);
+        } else {
+            alert(`Error: ${result.message}`);
+        }
+    });
+
+    // Function to load projects from localStorage and display them
+    function loadProjects() {
+        const projectList = JSON.parse(localStorage.getItem('projects')) || [];
+        const projectListElement = document.getElementById('project-list');
+
+        projectListElement.innerHTML = '';
+
+        projectList.forEach((project, index) => {
+            const listItem = document.createElement('li');
+            listItem.innerText = `${project.name} - ${project.path}`;
+
+            // Create a delete button for each project
+            const deleteButton = document.createElement('button');
+            deleteButton.innerText = 'Delete';
+            deleteButton.style.marginLeft = '10px';
+            deleteButton.addEventListener('click', () => removeProject(index));  // Pass index to remove the correct project
+
+            // Append the delete button to the list item
+            listItem.appendChild(deleteButton);
+
+            projectListElement.appendChild(listItem);
+        });
+    }
+
+    // Function to add a new project to localStorage
+    function addProject(folderPath, folderName) {
+        const projectList = JSON.parse(localStorage.getItem('projects')) || [];
+
+        const newProject = {
+            name: folderName,
+            path: folderPath
+        };
+
+        projectList.push(newProject);
+
+        // Save updated project list back to localStorage
+        localStorage.setItem('projects', JSON.stringify(projectList));
+
+        // Update the displayed list of projects
+        loadProjects();
+    }
+
+    // Function to remove a project from the list and localStorage
+    function removeProject(index) {
+        const projectList = JSON.parse(localStorage.getItem('projects')) || [];
+
+        // Remove the project at the specified index
+        projectList.splice(index, 1);
+
+        // Save the updated project list back to localStorage
+        localStorage.setItem('projects', JSON.stringify(projectList));
+
+        // Update the displayed list of projects
+        loadProjects();
+    }
+</script>
+</html>
